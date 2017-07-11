@@ -35,6 +35,7 @@ export default class AudioRecord extends Component {
     this.handlePreview = this.handlePreview.bind(this)
     this.state = {
       recording: false,
+      recordingTime: 0,
       recorded: false,
       playbacking: false,
     }
@@ -69,7 +70,7 @@ export default class AudioRecord extends Component {
   }
 
   async tearDown (success) {
-    this.setState({ recording: false, recorded: success })
+    this.setState({ recording: false, recorded: success, recordingTime: 0 })
   }
 
   async preview () {
@@ -91,7 +92,7 @@ export default class AudioRecord extends Component {
 
       await this.setUp()
       await this.record()
-      this.setState({ recording: true, recorded: false })
+      this.setState({ recording: true, recorded: false, recordingTime: 0 })
     } catch (e) {
       console.error(e)
     }
@@ -125,6 +126,9 @@ export default class AudioRecord extends Component {
         return
       }
       this.tearDown(isOK(data))
+    }
+    AudioRecorder.onProgress = ({ currentTime }) => {
+      this.setState({ recordingTime: Math.floor(currentTime) })
     }
   }
 
