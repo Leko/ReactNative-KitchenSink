@@ -7,7 +7,9 @@ import {
   TouchableOpacity,
   PermissionsAndroid
 } from 'react-native'
+import Promise from 'bluebird'
 import { AudioRecorder, AudioUtils } from 'react-native-audio'
+import Sound from 'react-native-sound'
 import flow from 'lodash/flow'
 import { is, some, digger } from '../functions'
 
@@ -30,9 +32,11 @@ export default class AudioRecord extends Component {
     super(props)
     this.handleStart = this.handleStart.bind(this)
     this.handleStop = this.handleStop.bind(this)
+    this.handlePreview = this.handlePreview.bind(this)
     this.state = {
       recording: false,
       recorded: false,
+      playbacking: false,
     }
   }
 
@@ -68,6 +72,17 @@ export default class AudioRecord extends Component {
     this.setState({ recording: false, recorded: success })
   }
 
+  async preview () {
+    // These timeouts are a hacky workaround for some issues with react-native-sound.
+    // See https://github.com/zmxv/react-native-sound/issues/89.
+    return new Promise(async (resolve, reject) => {
+      await Promise.delay(100)
+      const sound = new Sound(this.props.audioPath, '', e => e && reject(e))
+      await Promise.delay(100)
+      sound.play(ok => ok ? resolve() : reject(new Error('Playback failed')))
+    })
+  }
+
   async handleStart () {
     try {
       if (!await this.requestPermission()) {
@@ -93,6 +108,16 @@ export default class AudioRecord extends Component {
     }
   }
 
+  async handlePreview () {
+    if (!this.state.recorded) {
+      return
+    }
+
+    this.setState({ playbacking: true })
+    await this.preview()
+    this.setState({ playbacking: false })
+  }
+
   componentDidMount () {
     const isOK = flow(digger('status'), is('OK'))
     AudioRecorder.onFinished = (data) => {
@@ -116,8 +141,18 @@ export default class AudioRecord extends Component {
           style={styles.button}
           onPress={this.handleStop}
         >
-          <Text>{'録音を停止する'}</Text>
+          <Text>{'録音を終了する'}</Text>
         </TouchableOpacity>
+        {this.state.recorded
+          ? (
+            <TouchableOpacity
+              style={styles.button}
+              onPress={this.handlePreview}
+            >
+              <Text>{'録音した音声を確認する'}</Text>
+            </TouchableOpacity>
+          )
+          : null}
 
         <Text>State:</Text>
         <Text>{JSON.stringify(this.state, null, 2)}</Text>
