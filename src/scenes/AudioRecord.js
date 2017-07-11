@@ -1,6 +1,13 @@
 import React, { Component } from 'react'
-import { View, Text, TouchableOpacity } from 'react-native'
+import {
+  Platform,
+  View,
+  Text,
+  TouchableOpacity,
+  PermissionsAndroid
+} from 'react-native'
 import { AudioRecorder, AudioUtils } from 'react-native-audio'
+import { some } from '../functions'
 
 export default class AudioRecord extends Component {
   constructor (props) {
@@ -8,8 +15,32 @@ export default class AudioRecord extends Component {
     this.handleRecord = this.handleRecord.bind(this)
   }
 
-  handleRecord () {
-    // TODO: implement
+  async prepare () {
+  }
+
+  async requestPermission () {
+    const rationale = {
+      'title': 'Microphone Permission',
+      'message': 'ReactNativeKitchenSink needs access to your microphone so you can record audio.'
+    }
+    const isOK = some(true, PermissionsAndroid.RESULTS.GRANTED)
+
+    return Platform.select({
+      ios: () => Promise.resolve(true),
+      android: () => PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO, rationale).then(isOK),
+    })
+  }
+
+  async handleRecord () {
+    try {
+      if (!await this.requestPermission()) {
+        alert('TODO: Handle permission denied')
+      }
+
+      alert('Ready')
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   render () {
